@@ -214,7 +214,7 @@ print NR, "records processed." }'
 3       records processed.
 ----
 
-Multiline records:
+# Processing multiline records:
 
 [source,bash]
 ----
@@ -249,4 +249,32 @@ Boston MA 01760
 
 Phyllis Chapman
 Amesbury MA 01881
+----
+
+# Special processing based on row number and using `next`
+
+We can use expression like `NR == 1` to apply special rule for the first record.
+Inside that rule we can use `next` to skip following rules:
+
+
+[source,bash]
+----
+echo '1000
+125	 Market	 -125.45
+126	 Hardware Store	 -34.95156' | awk '
+BEGIN { FS="\t" }
+
+# First line is the initial balance.
+NR == 1 {
+    balance=$1; 
+    print "Initial balance: ", balance;
+    next  # get the next record and start over (do not proceed with next rule)
+}
+# Update balance.
+{ balance += $3 }
+# Show the result.
+END { print "Final balance: ", balance }'
+
+Initial balance:  1000
+Final balance:  839.598
 ----
