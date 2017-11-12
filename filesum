@@ -1,0 +1,26 @@
+#!/bin/bash
+
+# $* - all command-line parameters given to this script,
+# we just pass them through to `ls`.
+# This way we can do ./filesum *.txt to only process txt files.
+ls -l $* | awk '
+# 9 fields, starting with '-' - regular files
+NF == 9 && /^-/ {
+  count += 1;
+  total += $5;
+  printf("%-15s\t%10d\n", $9, $5)  # print filename and size
+  next;
+}
+# 9 fields, starting with '-' - directories
+NF == 9 && /^d/ {
+  print "<dir>", $9;
+  next;
+}
+# Previous rules exit with "next", so here we just print lines
+# not matching the rules above, for example, if we use -R flag,
+# we will see inner directory names splitting files.
+{ print }
+END { 
+  printf("Total: %d bytes (%d files)\n", total, count)
+}
+'
