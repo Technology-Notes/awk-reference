@@ -650,7 +650,7 @@ An array of command-line parameters:
       print ARGC
     }
 
-# Functions
+# Standard Functions
 
 Math:
 
@@ -666,19 +666,244 @@ Math:
 
 Strings:
 
-* gsub(r,s,t) - globally substitutes `s` for each match of the regular expression `r` in the string `t`. Returns the number of substitutions. If t is not supplied, defaults to $0.
+* length(s) - length of string `s` or length of $0 if no string is supplied.
 * index(s,t) - position of substring `t` in string `s` or zero if not present.
 ** `pos = index("Mississippi", "is")`
-* length(s) - length of string `s` or length of $0 if no string is supplied.
-* match(s,r) - either the position in `s` where the regular expression `r` begins, or 0 if no occurrences are found. Sets the values of `RSTART` and `RLENGTH.`
 * split(s,a,sep) - parses string `s` into elements of array `a` using field separator `sep;` returns number of elements. If `sep` is not supplied, `FS` is used. Array splitting works the same way as field splitting.
-* sprintf("fmt",expr) - uses printf format specification for `expr.`
-* sub(r,s,t) - substitutes `s` for first match of the regular expression `r` in the string `t`. Returns 1 if successful; 0 otherwise. If `t` is not supplied, defaults to `$0`.
 * substr(s,p,n) - returns substring of string `s` at beginning position `p` up to a maximum length of `n.` If `n` is not supplied, the rest of the string from `p` is used.
 ** `awk 'BEGIN { print substr("707-555-1111", 5) }'` -> `555-1111`
 ** `awk 'BEGIN { print substr("707-555-1111", 1, 3) }'` -> `707`
 * tolower(s) - translates all uppercase characters in string s to lowercase and returns the new string.
 * toupper(s) - translates all lowercase characters in string s to uppercase and returns the new string.
+* sprintf("fmt",expr) - uses printf format specification for `expr.`
+* match(s,r) - either the position in `s` where the regular expression `r` begins, or 0 if no occurrences are found. Sets the values of `RSTART` and `RLENGTH.`
+* gsub(r,s,t) - globally substitutes `s` for each match of the regular expression `r` in the string `t`. Returns the number of substitutions.
+** If `t` is not supplied, defaults to $0, so by default it works on current input line.
+* sub(r,s,t) - substitutes `s` for first match of the regular expression `r` in the string `t`. Returns 1 if successful; 0 otherwise. If `t` is not supplied, defaults to `$0`.
+
+An example of `match` usage:
+
+[source,bash]
+----
+echo 'test
+match' | awk '
+  # match -- print string that matches line
+  # for lines match pattern
+  match($0, pattern) {
+    # extract string matching pattern using
+    # starting position and length of string in $0
+    # print string
+    print substr($0, RSTART, RLENGTH)
+}' pattern="ma"
+
+ma
+----
+
+The `match()` function returns 0 if the pattern is not found, and a non-zero value (`RSTART`) if it is found, allowing the return value to be used as a condition:
+
+In `gawk` there are additional functions:
+
+* gensub(r, s, h, t) - if `h` is a string starting with `g` or `G,` globally substitutes s for `r` in `t.` Otherwise, `h` is a number: substitutes for the `h`'th occurrence. Returns the new value, `t` is unchanged. If `t` is not supplied, defaults to $0.
+** It improves gsub / sub: it is possible to replace Nth occurrence, source string is not changed - the result is returned instead, 
+** The pattern can have subpatterns delimited by parentheses. For example, it can have `/(part) (one|two|three)/`. Within the replacement string, a backslash followed by a digit represents the text that matched the Nth sub-pattern: `echo part two | gawk ’{ print gensub(/(part) (one|two|three)/, "\\2", "g") }` -> `two`
+* systime( ) - returns the current time of day in seconds since the Epoch (00:00 a.m., January 1, 1970 UTC).
+* strftime(format, timestamp) - Formats timestamp (of the same form returned by `systime()`) according to format. Default format - similar to the `date` command, default timestamp - current time.
+
+[source,bash]
+----
+echo 'TeSt' | awk '
+  # lower - change upper case to lower case
+  # note: we could use `tolower` to convert the case.
+  #
+  # initialize strings
+  BEGIN {
+    upper = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+    lower = "abcdefghijklmnopqrstuvwxyz"
+  }
+  # for each input line
+  {
+    # see if there is a match for all caps
+    while (match($0, /[A-Z]+/))
+      # get each cap letter
+      for (x = RSTART; x < RSTART+RLENGTH; ++x) {
+        CAP = substr($0, x, 1)
+        CHAR = index(upper, CAP)
+        # substitute lowercase for upper, we don't provide third
+        # parameter to `gsub`, so it acts on the input ($0).
+        gsub(CAP, substr(lower, CHAR, 1))
+      }
+      # print record
+      print $0
+}'
+
+test
+----
+
+# User Functions
+
+    function name (parameter-list) {
+      statements
+      return expression
+    }
+
+    function insert(STRING, POS, INS) {
+        before_tmp = substr(STRING, 1, POS)
+        after_tmp = substr(STRING, POS + 1)
+        return before_tmp INS after_tmp
+    }
+    # "Hello" -> "HellXXo"
+    print insert($1, 4, "XX")
+
+Note: variables declared inside the function are global (available outside the function).
+To make them local, we need to define them as parameters (and don't use these parameters when we are calling the function):
+
+    function insert(STRING, POS, INS, before_tmp, after_tmp) {
+        ...
+    }
+
+Note: there are some pre-defined "external" functions, under `/user/share/awk` on my system:
+
+
+    $ ls /usr/share/awk
+    assert.awk      ftrans.awk   inplace.awk   ord.awk           readable.awk  shellquote.awk
+    bits2str.awk    getopt.awk   join.awk      passwd.awk        readfile.awk  strtonum.awk
+    cliff_rand.awk  gettime.awk  libintl.awk   processarray.awk  rewind.awk    walkarray.awk
+    ctime.awk       group.awk    noassign.awk  quicksort.awk     round.awk     zerofile.awk
+
+To use external functions, pass the path to the source using `-f` flag:
+
+    awk -f myscript.awk -f /usr/share/awk/ctime.awk input.txt
+
+# getline - Read the Data From Files and Pipes
+
+The `getline` function is used to read another line of input.
+It is similar to `next`, but it doesn't pass the control back to the top of the script.
+
+It reads the line and returns:
+* 1 - If it was able to read a line.
+* 0 - If it encounters the end-of-file.
+* -1 - If it encounters an error.
+
+[source,bash]
+----
+echo 'first
+test
+second' | awk '
+/test/ {
+  getline # get next line
+  print $1 # print $1 of new line.
+}'
+
+second
+----
+
+The `getline` can also be used to read data from a file or a pipe:
+
+    # Read lines from the file "data" and print them.
+    while ( (getline < "data") > 0 )
+      print
+
+    # Read from standard input (prompt the user to enter the name):
+    BEGIN {
+      printf "Enter your name: "
+      getline < "-"
+      print
+    }
+
+    # We can also assign the data we read to the variable:
+    BEGIN {
+      printf "Enter your name: "
+      # Here we assign the input to `name` variable
+      getline name < "-"
+      print name
+    }
+
+It is possible to pipe output of a command to `getline`:
+
+[source,bash]
+----
+awk '# getname - print users fullname from /etc/passwd
+  BEGIN {
+    # `who am i` outputs single string, user name is the first word
+    "who am i" | getline
+    name = $1
+    FS = ":"
+  }
+  name ~$1 { print $5 }
+' /etc/passwd
+----
+
+[source,bash]
+----
+# subdate.awk -- replace @date with todays date
+/@date/ {
+  "date +’%a., %h %d, %Y’" | getline today
+  gsub(/@date/, today)
+}
+{ print }
+----
+
+The `close()` function allows to close open files and pipes, it takes single argument - same expression that was used to create the pipe:
+
+    close("who")
+
+Using `close` we free the resources; we can use the same command more than once; if we are using output pipe (like `some processing of $0 | "sort > tmpfile"`), we need to do `close("sort > tmpfile")` before using the `tmpfile` (for example in `getline < "tmpfile"`):
+
+    { some processing of $0 | "sort > tmpfile" }
+    END {
+      close("sort > tmpfile")
+      while ((getline < "tmpfile") > 0) {
+        do more work
+      }
+    }
+
+# Output to Files and Pipes
+
+It is possible to redirect output to the file:
+
+    print "a =", a, "b =", b, "max =", (a > b ? a : b) > "data.out"
+
+Similarly, the output can be redirected to the pipe:
+
+    print | command
+
+    awk 'BEGIN { print "test example" | "wc -w" }'
+    2
+
+    echo "test example" | awk '{ print | "wc -w" }'
+    2
+
+# system() - Execute System Commands
+
+The system( ) function executes a command supplied as an expression.
+It does not make the output of the command available within the program for processing.
+It returns the exit status of the command that was executed.
+
+    BEGIN {
+      if (system("mkdir test") != 0)
+        print "Command Failed"
+    }
+
+The command output goes to the script output:
+
+[source,bash]
+----
+echo 'test' | awk '
+{
+  # print the line using `echo`
+  system("echo " $0)
+}'
+
+test
+----
+
+We can check the command result:
+
+    # test returns 1 if file does not exist (and 0 if exists).
+    if (system("test -r " file)) {
+        print file " not found"
+    }
+
 
 # Reference Sources
 
