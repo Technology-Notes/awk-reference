@@ -212,8 +212,24 @@ Average calculation:
 ** Used when we do `str = (5.5 + 3.2) " is a nice value"`
 * `OFMT` - `printf` style number-to-string conversion when number is printed
 ** Used when we do `print 5.5`
+* `ARGC` - the number of command line arguments (does not include options to awk)
+* `ARGIND` - the index in ARGV of the current file being processed.
+* `ARGV` - array of command line arguments indexed from 0 to ARGC - 1.
+** Dynamically changing the contents of ARGV can control the files used for data.
+* `ENVIRON` - array of environment variables.
 
-Average calculation with auto-numbering:
+See more in `man awk`.
+
+
+The `SYMTAB` variable is an array whose indices are the names of all currently defined global variables and arrays in the program. The array may be used for indirect access to read or write the value of a variable:
+
+      foo = 5
+      SYMTAB["foo"] = 4
+      print foo    # prints 4
+
+The isarray() function may be used to test if an element in `SYMTAB` is an array. You may not use the delete statement with the `SYMTAB` array.
+
+Example - average calculation with auto-numbering:
 
 [source,bash]
 ----
@@ -223,12 +239,15 @@ jasper 84 88 80 92 84' | awk '
 # We will have tabs as output fields separator.
 BEGIN { OFS = "\t" }
 # average five grades
-{ total = $2 + $3 + $4 + $5 + $6
-avg = total / 5
-print NR ".", $1, avg }
+{
+  total = $2 + $3 + $4 + $5 + $6
+  avg = total / 5
+  print NR ".", $1, avg
+}
 END {
-print ""
-print NR, "records processed." }'
+  print ""
+  print NR, "records processed."
+}'
 
 1.      john    87.4
 2.      andrea  86
@@ -303,6 +322,8 @@ Final balance:  839.598
 ----
 
 The `next` statement causes the next line to be read and resumes execution from the top of the script.
+
+The `nextfile` statement stops current file processing and moves to the next file.
 
 The `exit` statement exits the main loop and passes control to `END` section (stops execution if used in `END` of if there is no `END` section).
 The `exit` takes an expression as an argument. It will be used as script exit status code, by default exit status is 0.
@@ -553,3 +574,53 @@ awk '# factorial: return factorial of user-supplied number
 ----
 
 Loops support `break` (exit the loop) and `continue` (start the next iteration).
+
+# Arrays
+
+    array [ subscript ] = value
+
+    student_avg[NR] = avg
+    ...
+    END {
+      for ( x = 1; x <= NR; x++ )
+        class_avg_total += student_avg[x]
+      class_average = class_avg_total / NR
+    }
+
+All arrays are `associative` - the index can either be a string or a number.
+
+    # grade = "A", "B", "C", "D"
+    ++class_grade[grade]
+    ...
+    # To iterate the array we can use `for (item in array)` loop.
+    for (letter_grade in class_grade)
+      # We also pipe output to "sort".
+      print letter_grade ":", class_grade[letter_grade] | "sort"
+
+To iterate the array we can use `for (item in array)` loop and to test for membership we can use `if (item in array)`.
+
+Multidimensional arrays doesn't have to be rectangular as in C and C++:
+
+    a[1] = 5
+    a[2][1] = 6
+    a[2][2] = 7
+
+The `split` function can be used to create arrays:
+
+    n = split(string, array, separator)
+    where:
+      n - number of items in the array
+      string - the string to split
+      array - the array (function output)
+      separator - delimiter to use when splitting the string
+
+    z = split($1, array, " ")
+    for (i = 1; i <= z; ++i)
+      print i, array[i]
+
+
+
+# Sources
+
+- `man awk`
+- [sed & awk, 2nd Edition](http://shop.oreilly.com/product/9781565922259.do)
