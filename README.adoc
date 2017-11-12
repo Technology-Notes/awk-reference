@@ -123,7 +123,7 @@ Field separator can be an expression:
 # Expressions
 
 There are two types of constants: string or numeric ("red" or 1).
-A string must be quoted in an expression. 
+A string must be quoted in an expression.
 
 Strings can make use of the escape sequences:
     \a Alert character, usually ASCII BEL character
@@ -274,7 +274,7 @@ Phyllis Chapman
 Amesbury MA 01881
 ----
 
-# Special processing based on row number and using `next`
+# Special processing based on row number and using `next` and `exit`
 
 We can use expression like `NR == 1` to apply special rule for the first record.
 Inside that rule we can use `next` to skip following rules:
@@ -289,7 +289,7 @@ BEGIN { FS="\t" }
 
 # First line is the initial balance.
 NR == 1 {
-    balance=$1; 
+    balance=$1;
     print "Initial balance: ", balance;
     next  # get the next record and start over (do not proceed with next rule)
 }
@@ -301,6 +301,11 @@ END { print "Final balance: ", balance }'
 Initial balance:  1000
 Final balance:  839.598
 ----
+
+The `next` statement causes the next line to be read and resumes execution from the top of the script.
+
+The `exit` statement exits the main loop and passes control to `END` section (stops execution if used in `END` of if there is no `END` section).
+The `exit` takes an expression as an argument. It will be used as script exit status code, by default exit status is 0.
 
 Similar example with interesting trick to remove header and footer (source: https://stackoverflow.com/a/7148801/4612064).
 Here we extract a list of file names from the `7z l` output which looks like this:
@@ -345,3 +350,206 @@ Initially `p` is zero, so the last rule with `print` doesn't work.
 Second line cacluates the position where the file name starts (by checking the position of "Name" in the header.
 Once we meet first "----", the `p` value becomes 1 (1 % 2 = 1) and we start processing filenames.
 And when we get to the next "----", the `p` value becomes 0 (2 % 2 = 0) and we stop the processing.
+
+# Formatting output: printf
+
+Syntax:
+
+  printf ( format-expression [, arguments] )
+
+The parentheses are optional.
+
+Format specifiers:
+
+- c ASCII character
+- d Decimal integer
+- i Decimal integer. (Added in POSIX)
+- e Floating-point format ([-]d.pr ecisione[+-]dd)
+- E Floating-point format ([-]d.pr ecisionE[+-]dd)
+- f Floating-point format ([-]ddd.pr ecision)
+- g e or f conversion, whichever is shortest, with trailing zeros removed
+- G E or f conversion, whichever is shortest, with trailing zeros removed
+- o Unsigned octal value
+- s String
+- u Unsigned decimal value
+- x Unsigned hexadecimal number. Uses a-f for 10 to 15
+- X Unsigned hexadecimal number. Uses A-F for 10 to 15
+- % Literal %
+
+A format expression can take three optional modifiers following “%” and preceding the format specifier:
+
+  %-width.precision format-specifier
+
+* width - numeric value, the contents will be right-justified, use '-' to get left-justification.
+** `echo '5' | awk '{ printf("*%20s*", $1) }'` -> `*                   5*`
+** `echo '5' | awk '{ printf("*%-20s*", $1) }'` -> `*5                   *`
+* precision:
+** for decimal or floating-point values - the number of digits to the right of the decimal point;
+** for string values - the maximum number of characters that will be printed.
+
+[source,bash]
+----
+echo '3.1415' | awk '{ printf("%.3g", $1) }'
+
+3.14
+----
+
+Default format: `%.6g`.
+
+With and precision can be specified dynamically:
+
+[source,bash]
+----
+echo '3.1415' | awk '{ printf("%*.*g", 5, 3, $1) }'
+
+ 3.14
+----
+
+# Passing Parameters Into a Script
+
+Variables can be passed using `var=value` parameters:
+
+   awk ’script’ var=value inputfile
+
+For example:
+
+   $ awk -f scriptfile high=100 low=60 datafile
+
+   # Use env variable as value:
+   $ awk ’{ ... }’ directory=$cwd file1 ...
+
+   # Use `pwd` output as value:
+   $ awk ’{ ... }’ directory=‘pwd‘ file1 ...
+
+It is possible to use command-line parameters to define system variables:
+
+   $ awk ’{ print NR, $0 }’ OFS=’. ’ names
+
+Note: command-line parameters is that they are not available in the BEGIN procedure.
+BEGIN is evaluated before the input is read.
+
+[source,bash]
+----
+awk 'BEGIN {
+  # Here `n` is not set.
+  print "Begin: " n
+}
+{
+  # Will print "Reading the first file" for each line in `test` file.
+  if (n == 1) print "Reading the first file"
+  # Will print "Reading the second file" for each line in `test2` file.
+  if (n == 2) print "Reading the second file"
+}' n=1 test n=2 test2
+----
+
+The `-v` options allows to specify parameters that are evaluated early and available in BEGIN:
+
+[source,bash]
+----
+# The -v option must be specified before the script itself.
+awk -v n=1 'BEGIN {
+  # prints "Begin: 1"
+  print "Begin: " n
+}'
+----
+
+The `-v` option can be used for system variables too (here we set `RS`): `awk -F"\n" -v RS="" '{ print }' ...`.
+
+[source,bash]
+----
+echo 'test
+test
+
+test2
+test2' | awk -F"\n" -v RS="" -v n=1 '{
+    # We use new line as filed separator and
+    # empty line as record separator
+    print n, $1, "-", $2
+}'
+
+1 test - test
+1 test2 - test2
+----
+
+Awk also provides the system variables `ARGC` and `ARGV`, similar to C.
+
+# Conditional Statements
+
+    if ( expression )
+      action1
+    [else
+      action2 ]
+
+    if ( expression ) action1 ; [else action2 ]
+
+    if (avg >= 90) grade = "A"
+    else if (avg >= 80) grade = "B"
+    else if (avg >= 70) grade = "C"
+    else if (avg >= 60) grade = "D"
+    else grade = "F"
+
+Conditional operator:
+
+    expr ? action1 : action2
+
+    grade = (avg >= 65) ? "Pass" : "Fail"
+
+# Looping
+
+    # While loop
+    while ( condition )
+      action
+
+    i = 1
+    while ( i <= 4 ) {
+      print $i
+      ++i
+    }
+
+    # Do loop
+    do
+      action
+    while ( condition )
+
+    do {
+      ++x
+      print x
+    } while ( x <= 4 )
+
+    # For loop
+    for ( set_counter ; test_counter ; increment_counter )
+      action
+
+    for ( i = 1; i <= NF; i++ )
+      print $i
+
+Prompt the user for a number and calculate factorial:
+
+[source,bash]
+----
+awk '# factorial: return factorial of user-supplied number
+  BEGIN {
+    # prompt user; use printf, not print, to avoid the newline
+    printf("Enter number: ")
+  }
+  # check that user enters a number
+  $1 ~ /^[0-9]+$/ {
+    # assign value of $1 to number & fact
+    number = $1
+    if (number == 0)
+      fact = 1
+    else
+      fact = number
+    # loop to multiply fact*x until x = 1
+    for (x = number - 1; x > 1; x--)
+      fact *= x
+    printf("The factorial of %d is %g\n", number, fact)
+    # exit -- saves user from typing CRTL-D.
+    exit
+  }
+  # if not a number, prompt again.
+  { printf(" \nInvalid entry. Enter a number: ")
+}' -
+----
+
+Loops support `break` (exit the loop) and `continue` (start the next iteration).
