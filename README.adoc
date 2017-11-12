@@ -605,6 +605,27 @@ Multidimensional arrays doesn't have to be rectangular as in C and C++:
     a[2][1] = 6
     a[2][2] = 7
 
+    file_array[NR, i] = $i
+    file_array[2, 4]
+
+Note: Multidimensional arrays are simulated, all indices are concatenated together separated by the value of the system variable SUBSEP (by default "\034", an unprintable character):
+
+[source,bash]
+----
+awk 'BEGIN { x[1][2] = 2; print x[1][2]; }'
+2
+
+$ awk 'BEGIN { x[1,2] = 2; print x[1,2]; }'
+2
+
+$ awk 'BEGIN { x[1,2] = 2; print x["1" "\034" "2"]; }'
+2
+----
+
+The multidimensional array syntax is also supported in testing for array membership: `if ((i, j) in array)`.
+
+Looping over a multidimensional array is the same as with one-dimensional arrays: `for (item in array)`, `split( )` function can be used then to access individual subscript components: `split(item, subscr, SUBSEP)`.
+
 The `split` function can be used to create arrays:
 
     n = split(string, array, separator)
@@ -618,9 +639,48 @@ The `split` function can be used to create arrays:
     for (i = 1; i <= z; ++i)
       print i, array[i]
 
+Remove an item from the array:
 
+    delete array [subscript]
 
-# Sources
+An array of command-line parameters:
+
+    BEGIN { for (x = 0; x < ARGC; ++x)
+      print ARGV[x]
+      print ARGC
+    }
+
+# Functions
+
+Math:
+
+* cos(x) - cosine of x (x is in radians).
+* exp(x) - e to the power x.
+* int(x) - truncated value of x.
+* log(x) - natural logarithm (base-e) of x.
+* sin(x) - sine of x (x is in radians).
+* sqr t(x) - square root of x.
+* atan2(y,x) - arctangent of y/x in the range - π to π .
+* rand( ) - pseudo-random number r, wher e 0 <= r < 1.
+* srand(x) Establishes new seed for rand( ). If no seed is specified, uses time of day. Returns the old seed.
+
+Strings:
+
+* gsub(r,s,t) - globally substitutes `s` for each match of the regular expression `r` in the string `t`. Returns the number of substitutions. If t is not supplied, defaults to $0.
+* index(s,t) - position of substring `t` in string `s` or zero if not present.
+** `pos = index("Mississippi", "is")`
+* length(s) - length of string `s` or length of $0 if no string is supplied.
+* match(s,r) - either the position in `s` where the regular expression `r` begins, or 0 if no occurrences are found. Sets the values of `RSTART` and `RLENGTH.`
+* split(s,a,sep) - parses string `s` into elements of array `a` using field separator `sep;` returns number of elements. If `sep` is not supplied, `FS` is used. Array splitting works the same way as field splitting.
+* sprintf("fmt",expr) - uses printf format specification for `expr.`
+* sub(r,s,t) - substitutes `s` for first match of the regular expression `r` in the string `t`. Returns 1 if successful; 0 otherwise. If `t` is not supplied, defaults to `$0`.
+* substr(s,p,n) - returns substring of string `s` at beginning position `p` up to a maximum length of `n.` If `n` is not supplied, the rest of the string from `p` is used.
+** `awk 'BEGIN { print substr("707-555-1111", 5) }'` -> `555-1111`
+** `awk 'BEGIN { print substr("707-555-1111", 1, 3) }'` -> `707`
+* tolower(s) - translates all uppercase characters in string s to lowercase and returns the new string.
+* toupper(s) - translates all lowercase characters in string s to uppercase and returns the new string.
+
+# Reference Sources
 
 - `man awk`
 - [sed & awk, 2nd Edition](http://shop.oreilly.com/product/9781565922259.do)
