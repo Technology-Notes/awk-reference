@@ -19,22 +19,20 @@ toc::[]
 
 [source,bash]
 ----
-    echo '1
+echo '1
 
-    test' | awk '
-        /[0-9]+/ { print "That is an integer" }
-        /[A-Za-z]+/ { print "This is a string" }
-        /^$/ { print "This is a blank line." }
-        { print }
-    '
+test' | awk '
+    /[0-9]+/ { print "That is an integer" }
+    /[A-Za-z]+/ { print "This is a string" }
+    /^$/ { print "This is a blank line" }
+    { print }
+'
+That is an integer
+1
+This is a blank line.
 
-    This is a blank line.
-
-    That is an integer
-    1
-    This is a blank line.
-
-    This is a string
+This is a string
+test
 ----
 
 We can match the specific field:
