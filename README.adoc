@@ -916,4 +916,4 @@ We can check the command result:
 # Reference Sources
 
 - `man awk`
-- [sed & awk, 2nd Edition](http://shop.oreilly.com/product/9781565922259.do)
+- link:http://shop.oreilly.com/product/9781565922259.do[sed & awk, 2nd Edition]
