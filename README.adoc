@@ -15,6 +15,7 @@ END {}         # executed once
 ----
 
 Where `pattern` is one of:
+
 * /regular expression/
 * relational expression (`$2 > $1`)
 * pattern-matching expression (`$2 ~ /test/`, `$2 !~ /test/`)
