@@ -14,13 +14,11 @@ BEGIN {}       # executed once
 END {}         # executed once
 ----
 
-Where `pattern` is one of:
+Where `pattern` can be:
 
 * /regular expression/
 * relational expression (`$2 > $1`)
 * pattern-matching expression (`$2 ~ /test/`, `$2 !~ /test/`)
-* BEGIN
-* END
 
 
 # Pattern Matching
