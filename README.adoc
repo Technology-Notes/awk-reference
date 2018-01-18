@@ -5,7 +5,7 @@
 
 toc::[]
 
-# Program structure
+# Program Structure
 
 [source,bash]
 ----
@@ -23,7 +23,7 @@ Where `pattern` is one of:
 * END
 
 
-# Pattern matching
+# Pattern Matching
 
 [source,bash]
 ----
@@ -204,7 +204,7 @@ andrea 86
 jasper 85.6
 ----
 
-# System variables
+# System Variables
 
 * `FS` - input field separator (space by default)
 ** Note: usually FS is assigned in the BEGIN block, but can be changed anywhere
@@ -265,7 +265,7 @@ END {
 3       records processed.
 ----
 
-# Processing multiline records:
+# Processing Multiline Records
 
 [source,bash]
 ----
@@ -302,7 +302,7 @@ Phyllis Chapman
 Amesbury MA 01881
 ----
 
-# Special processing based on row number and using `next` and `exit`
+# Special Processing: Based On Row Number And Using `next` And `exit`
 
 We can use expression like `NR == 1` to apply special rule for the first record.
 Inside that rule we can use `next` to skip following rules:
@@ -381,7 +381,7 @@ Second line cacluates the position where the file name starts (by checking the p
 Once we meet first "----", the `p` value becomes 1 (1 % 2 = 1) and we start processing filenames.
 And when we get to the next "----", the `p` value becomes 0 (2 % 2 = 0) and we stop the processing.
 
-# Formatting output: printf
+# Formatting Output: printf
 
 Syntax:
 
