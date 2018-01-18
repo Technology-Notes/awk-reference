@@ -9,9 +9,9 @@ toc::[]
 
 [source,bash]
 ----
-BEGIN {}       # executed once
-/pattern/ { }  # executed for each line matching pattern
-END {}         # executed once
+BEGIN {}       # executed once, optional
+/pattern/ { }  # executed for each input line matching pattern
+END {}         # executed once, optional
 ----
 
 Where `pattern` can be:
@@ -20,6 +20,64 @@ Where `pattern` can be:
 * relational expression (`$2 > $1`)
 * pattern-matching expression (`$2 ~ /test/`, `$2 !~ /test/`)
 
+Patterns can be complex:
+
+* pattern && pattern - logical AND
+* pattern || pattern - logical OR
+* ! pattern - logical NOT
+* pattern ? pattern : pattern - conditional operator, like in C
+* pattern1, pattern2 - a range pattern, matches all input records starting with a record that matches pattern1, and continuing until a record that matches pattern2, inclusive.
+
+# Fields
+
+Each input record is split into fields, that are accessible via `$..` variables:
+
+    $0 - the whole record (line)
+    $1, $2, ... - fields
+
+Default separator is space.
+
+Example:
+
+[source,bash]
+----
+echo a b c d | awk '{ print $1 $2 }'
+
+ab
+----
+
+Any expression that evaluates to integer can be used as field number, the following outputs `c`:
+
+[source,bash]
+----
+echo a b c d | awk 'BEGIN { one = 1; two = 2 }
+{ print $(one + two) }'
+
+c
+----
+
+Default field separator is space, can be changed with command line flag `awk -F:`(':' as separator),
+or `awk -F"\t" ...` to use tab as a separator.
+
+Can also be changed inside the script by setting `FS` variable:
+
+[source,bash]
+----
+echo a,b,c,d | awk 'BEGIN { FS="," }
+{ print $2 }'
+
+b
+----
+
+Field separator can be an expression:
+
+[source,bash]
+----
+echo a_b:c d | awk 'BEGIN { FS="[_: ]" }
+{ print $1 "-" $2 "-" $3 "-" $4}'
+
+a-b-c-d
+----
 
 # Pattern Matching
 
@@ -77,55 +135,6 @@ NF == 6 { print $1, $6 }'
 
 More complex expressions can be used as well, for example `NR > 1 && (NF >= 2 || $1  ̃ /\t/)`.
 
-# Fields
-
-Each input record is split into fields, that are accessible via `$..` variables:
-
-    $0 - the whole record (line)
-    $1, $2, ... - fields
-
-Example:
-
-[source,bash]
-----
-echo a b c d | awk '{ print $1 $2 }'
-
-ab
-----
-
-Any expression that evaluates to integer can be used as field number, the following outputs `c`:
-
-[source,bash]
-----
-echo a b c d | awk 'BEGIN { one = 1; two = 2 }
-{ print $(one + two) }'
-
-c
-----
-
-Default field separator is space, can be changed with command line flag `awk -F:`(':' as separator),
-or `awk -F"\t" ...` to use tab as a separator.
-
-Can also be changed inside the script by setting `FS` variable:
-
-[source,bash]
-----
-echo a,b,c,d | awk 'BEGIN { FS="," }
-{ print $2 }'
-
-b
-----
-
-Field separator can be an expression:
-
-[source,bash]
-----
-echo a_b:c d | awk 'BEGIN { FS="[_: ]" }
-{ print $1 "-" $2 "-" $3 "-" $4}'
-
-a-b-c-d
-----
-
 # Variables And Expressions
 
 There are two types of constants: string or numeric ("red" or 1).
@@ -172,6 +181,21 @@ print $1, avg }'
 john 87.4
 andrea 86
 jasper 85.6
+----
+
+We can use expression to define the part of the record to match, for example:
+
+[source,bash]
+----
+echo 'john 10 15
+andrea 5 3
+jasper 2 20' | awk '
+    # print only lines where $2 + $3 > 20
+    $2 + $3 > 20 { print $1 " " $2+$3}
+'
+
+john 25
+jasper 22
 ----
 
 # Strings
