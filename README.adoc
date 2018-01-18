@@ -41,7 +41,7 @@ This is a string
 test
 ----
 
-We can match the specific field:
+We can match the specific field (by default each string is split into fields by space):
 
 [source,bash]
 ----
@@ -126,32 +126,9 @@ echo a_b:c d | awk 'BEGIN { FS="[_: ]" }
 a-b-c-d
 ----
 
-# Expressions
+# Variables And Expressions
 
 There are two types of constants: string or numeric ("red" or 1).
-A string must be quoted in an expression.
-
-Strings can make use of the escape sequences:
-
-* \a Alert character, usually ASCII BEL character
-* \b Backspace
-* \f Formfeed
-* \n Newline
-* \r Carriage return
-* \t Horizontal tab
-* \v Vertical tab
-* \ddd Character repr esented as 1 to 3 digit octal value
-* \xhex Character repr esented as hexadecimal value a
-* \c Any literal character c (e.g., \" for ") b
-
-[source,bash]
-----
-echo a_b:c d | awk 'BEGIN { FS="[_: ]" }
-{ print $1 "\v" $2 "\t" $3 "\"" $4}'
-
-a
- b      c"d
-----
 
 Variables:
 
@@ -160,11 +137,6 @@ Variables:
 * default value is zero
 * each variable has string and integer value
 ** strings that are not numbers evaluate to zero
-
-A space is the string concatenation operator:
-
-    # Assigns “HelloWorld” to the variable z.
-    z = "Hello" "World"
 
 There are `+`/`-`, etc arithmetic operators.
 There are `+=`, `-=`, `++` (both postfix and infix), `--` assignment operators.
@@ -200,6 +172,37 @@ print $1, avg }'
 john 87.4
 andrea 86
 jasper 85.6
+----
+
+# Strings
+
+A string must be quoted in an expression.
+
+The space is the string concatenation operator:
+
+    # Assigns “HelloWorld” to the variable z.
+    z = "Hello" "World"
+
+Strings can make use of the escape sequences:
+
+* \a Alert character, usually ASCII BEL character
+* \b Backspace
+* \f Formfeed
+* \n Newline
+* \r Carriage return
+* \t Horizontal tab
+* \v Vertical tab
+* \ddd Character repr esented as 1 to 3 digit octal value
+* \xhex Character repr esented as hexadecimal value a
+* \c Any literal character c (e.g., \" for ") b
+
+[source,bash]
+----
+echo a_b:c d | awk 'BEGIN { FS="[_: ]" }
+{ print $1 "\v" $2 "\t" $3 "\"" $4}'
+
+a
+ b      c"d
 ----
 
 # System Variables
